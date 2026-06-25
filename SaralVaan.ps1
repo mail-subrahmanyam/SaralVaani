@@ -71,7 +71,7 @@ Write-Host "[1/2] Rebuilding fresh isolated Python production workspace..." -For
 & $PythonExe -m venv venv 2>$null
 
 Write-Host "[2/2] Installing production offline AI backend tools (CPU Static Build)..." -ForegroundColor Yellow
-& .\venv\Scripts\pip install customtkinter transformers sentencepiece torch soundfile librosa moviepy python-docx reportlab gTTS scipy --extra-index-url https://download.pytorch.org/whl/cpu --quiet --no-warn-script-location 2>$null
+& .\venv\Scripts\pip install customtkinter transformers sentencepiece torch soundfile librosa moviepy python-docx reportlab gTTS scipy pydub --extra-index-url https://download.pytorch.org/whl/cpu --quiet --disable-pip-version-check
 
 # 6. INJECTING END-TO-END PIPELINE SYSTEM CODE
 Write-Host "Injecting production CPU desktop engine core layers..." -ForegroundColor Yellow
@@ -82,10 +82,10 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import threading
 import os
-import math
 import time
 import re
 import warnings
+import subprocess
 
 # Mute all runtime Hugging Face and library-level warning arrays
 warnings.filterwarnings("ignore")
@@ -95,7 +95,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import soundfile as sf
 import librosa
 import numpy as np
-from scipy.io import wavfile
 from moviepy import VideoFileClip, AudioFileClip
 
 from docx import Document
@@ -110,11 +109,34 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
+# Language mapping with corrected codes
 NLLB_LANG_MAP = {
-    "Hindi": "hin_Deva", "Telugu": "tel_Telu", "Tamil": "tam_Knda", 
-    "Kannada": "kan_Knda", "Malayalam": "mal_Mlym", "Bengali": "ben_Beng", 
-    "Marathi": "mar_Deva", "Gujarati": "guj_Gujr", "Punjabi": "pan_Guru",
-    "Odia": "ory_Orya", "Assamese": "asm_Asmv"
+    "Hindi": "hin_Deva", 
+    "Telugu": "tel_Telu", 
+    "Tamil": "tam_Tamil",
+    "Kannada": "kan_Knda", 
+    "Malayalam": "mal_Mlym", 
+    "Bengali": "ben_Beng", 
+    "Marathi": "mar_Deva", 
+    "Gujarati": "guj_Gujr", 
+    "Punjabi": "pan_Guru",
+    "Odia": "ory_Orya", 
+    "Assamese": "asm_Asmv"
+}
+
+# gTTS language code mapping
+GTTS_LANG_MAP = {
+    "Hindi": "hi",
+    "Telugu": "te",
+    "Tamil": "ta",
+    "Kannada": "kn",
+    "Malayalam": "ml",
+    "Bengali": "bn",
+    "Marathi": "mr",
+    "Gujarati": "gu",
+    "Punjabi": "pa",
+    "Odia": "or",
+    "Assamese": "as"
 }
 
 class SaralVaaniApp(ctk.CTk):
@@ -159,6 +181,7 @@ class SaralVaaniApp(ctk.CTk):
         self.voice_label.pack(anchor="w", padx=25, pady=(15, 2))
         self.voice_menu = ctk.CTkOptionMenu(self.left_panel, values=["Female Voice Model", "Male Voice Model"])
         self.voice_menu.pack(fill="x", padx=25, pady=5)
+        self.voice_menu.set("Female Voice Model")
         
         self.burn_subs_var = tk.StringVar(value="off")
         self.burn_subs_chk = ctk.CTkCheckBox(self.left_panel, text="Hardburn subtitles directly into output video clip", variable=self.burn_subs_var, onvalue="on", offvalue="off")
@@ -174,6 +197,7 @@ class SaralVaaniApp(ctk.CTk):
         self.lang_label.pack(anchor="w", padx=35, pady=(5, 2))
         self.lang_menu = ctk.CTkOptionMenu(self.right_panel, values=list(NLLB_LANG_MAP.keys()))
         self.lang_menu.pack(fill="x", padx=35, pady=5)
+        self.lang_menu.set("Hindi")
         
         self.matrix_frame = ctk.CTkFrame(self.right_panel)
         self.matrix_frame.pack(fill="x", padx=35, pady=15, ipady=10)
@@ -210,6 +234,9 @@ class SaralVaaniApp(ctk.CTk):
     def select_file(self):
         file_path = filedialog.askopenfilename(filetypes=[("All Supported Assets", "*.txt *.mp3 *.wav *.mp4 *.mkv")])
         if file_path:
+            if not os.path.exists(file_path):
+                messagebox.showerror("File Error", "Selected file does not exist.")
+                return
             self.selected_file_path = file_path
             self.file_status_label.configure(text=f"Selected Local File:\n{os.path.basename(file_path)}")
             
@@ -236,15 +263,36 @@ class SaralVaaniApp(ctk.CTk):
             return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
         
         words = text.split()
+        if not words:
+            words = [""]
         chunk_size = max(1, len(words) // 5)
         chunks = [words[i:i + chunk_size] for i in range(0, len(words), chunk_size)]
         
         with open(srt_path, "w", encoding="utf-8") as f:
             for index, chunk in enumerate(chunks):
-                start = (duration / len(chunks)) * index
-                end = (duration / len(chunks)) * (index + 1)
+                start = (duration / max(1, len(chunks))) * index
+                end = (duration / max(1, len(chunks))) * (index + 1)
                 caption = " ".join(chunk)
                 f.write(f"{index + 1}\n{format_time(start)} --> {format_time(end)}\n{caption}\n\n")
+
+    def convert_audio_to_mp3(self, input_path, output_path):
+        """Convert audio to MP3 using ffmpeg via pydub fallback"""
+        try:
+            from pydub import AudioSegment
+            audio = AudioSegment.from_wav(input_path)
+            audio.export(output_path, format="mp3", bitrate="192k")
+            return True
+        except:
+            # Fallback: use ffmpeg if available
+            try:
+                subprocess.run(
+                    ["ffmpeg", "-i", input_path, "-q:a", "9", "-n", output_path],
+                    capture_output=True,
+                    check=True
+                )
+                return True
+            except:
+                return False
 
     def execute_inference_pipeline(self):
         temp_audio_path = None
@@ -257,9 +305,13 @@ class SaralVaaniApp(ctk.CTk):
             user_appdata = os.path.join(os.path.expanduser("~"), "AppData", "Local", "SaralVaani")
             export_dir = os.path.join(user_appdata, "output", "exports")
             
+            # Ensure export directory exists
+            os.makedirs(export_dir, exist_ok=True)
+            
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
             chosen_language = self.lang_menu.get()
             target_lang_code = NLLB_LANG_MAP[chosen_language]
+            gtts_lang_code = GTTS_LANG_MAP.get(chosen_language, "en")
             voice_selection = self.voice_menu.get()
             
             source_text = ""
@@ -277,12 +329,13 @@ class SaralVaaniApp(ctk.CTk):
                 if ext in [".mp4", ".mkv"]:
                     video_clip = VideoFileClip(self.selected_file_path)
                     media_duration = video_clip.duration
-                    video_clip.audio.write_audiofile(temp_audio_path, logger=None)
+                    if video_clip.audio is not None:
+                        video_clip.audio.write_audiofile(temp_audio_path, verbose=False, logger=None)
                     video_clip.close()
                 else:
                     audio_clip = AudioFileClip(self.selected_file_path)
                     media_duration = audio_clip.duration
-                    audio_clip.write_audiofile(temp_audio_path, logger=None)
+                    audio_clip.write_audiofile(temp_audio_path, verbose=False, logger=None)
                     audio_clip.close()
                 
                 self.progress_status_label.configure(text="Loading OpenAI Whisper-Tiny...", text_color="#17A2B8")
@@ -314,7 +367,7 @@ class SaralVaaniApp(ctk.CTk):
             
             try:
                 forced_bos_id = tokenizer.lang_code_to_id[target_lang_code]
-            except AttributeError:
+            except (AttributeError, KeyError):
                 forced_bos_id = tokenizer.vocab.get(target_lang_code)
                 
             if forced_bos_id is None:
@@ -345,6 +398,11 @@ class SaralVaaniApp(ctk.CTk):
             raw_translated_text = " ".join(translated_pieces)
             translated_text = self.remove_consecutive_repetitions(raw_translated_text)
             self.progress_bar.set(0.70)
+            
+            # Clean up model from memory
+            del model
+            del tokenizer
+            torch.cuda.empty_cache()
             
             if self.out_txt_var.get():
                 self.progress_status_label.configure(text="Compiling text file export packages...", text_color="#17A2B8")
@@ -380,9 +438,20 @@ class SaralVaaniApp(ctk.CTk):
                 
                 punctuated_text = translated_text.replace(" ", ", ", len(translated_text.split()) // 4)
                 
-                raw_tts_path = os.path.join(export_dir, "raw_tts_temp.mp3")
-                tts = gTTS(text=punctuated_text, lang='hi' if chosen_language == "Hindi" else 'en', slow=False) 
-                tts.save(raw_tts_path)
+                raw_tts_path = os.path.join(export_dir, "raw_tts_temp.wav")
+                try:
+                    tts = gTTS(text=punctuated_text, lang=gtts_lang_code, slow=False) 
+                    tts_mp3_temp = os.path.join(export_dir, "raw_tts_temp.mp3")
+                    tts.save(tts_mp3_temp)
+                    
+                    # Convert MP3 to WAV for processing
+                    audio_segment = AudioSegment.from_mp3(tts_mp3_temp)
+                    audio_segment.export(raw_tts_path, format="wav")
+                    
+                    if os.path.exists(tts_mp3_temp):
+                        os.remove(tts_mp3_temp)
+                except:
+                    raise ValueError(f"Text-to-speech synthesis failed for language: {chosen_language}")
                 
                 # DSP Voice Modification Engine Blocks
                 y, sr = librosa.load(raw_tts_path, sr=None)
@@ -395,8 +464,9 @@ class SaralVaaniApp(ctk.CTk):
                 pitch_steps = -2.5 if "Male" in voice_selection else 1.5
                 y_modulated = librosa.effects.pitch_shift(y_stretched, sr=sr, n_steps=pitch_steps)
                 
-                # Safely compile back to target using standard compliant frequency integers (sr)
-                sf.write(tts_audio_path, y_modulated, sr, format='mp3')
+                # Convert to MP3 using pydub
+                sf.write(raw_tts_path, y_modulated, sr)
+                self.convert_audio_to_mp3(raw_tts_path, tts_audio_path)
                 
                 if os.path.exists(raw_tts_path):
                     os.remove(raw_tts_path)
@@ -412,7 +482,7 @@ class SaralVaaniApp(ctk.CTk):
                 final_video = input_video.with_audio(translated_voiceover)
                 final_output_video_path = os.path.join(export_dir, f"{base_name}_FinalDubbed_{chosen_language}.mp4")
                 
-                final_video.write_videofile(final_output_video_path, codec="libx264", audio_codec="aac", logger=None)
+                final_video.write_videofile(final_output_video_path, codec="libx264", audio_codec="aac", verbose=False, logger=None)
                 
                 input_video.close()
                 translated_voiceover.close()
@@ -429,7 +499,10 @@ class SaralVaaniApp(ctk.CTk):
             
         except Exception as e:
             if temp_audio_path and os.path.exists(temp_audio_path):
-                os.remove(temp_audio_path)
+                try:
+                    os.remove(temp_audio_path)
+                except:
+                    pass
             self.progress_status_label.configure(text="Pipeline Error encountered.", text_color="red")
             self.process_btn.configure(state="normal", text="🚀 Execute Standalone Pipeline", fg_color="#1E7E34")
             messagebox.showerror("Hardware Pipeline Failure", f"An internal device exception occurred:\n{str(e)}")
