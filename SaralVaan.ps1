@@ -1,33 +1,42 @@
-# ==========================================
-# SYSTEM-AGNOSTIC ENVIRONMENT INTERROGATOR
-# ==========================================
-# 1. Look for Python in the known layout first, otherwise search system PATH natively (ignoring Windows Store aliases)
-$KnownPythonPath = "C:\Users\Lenovo\AppData\Local\Programs\Python\Python310\python.exe"
+# ==============================================================================
+# ENTERPRISE WINDOWS STANDALONE ENVIRONMENT PROVISIONER
+# ==============================================================================
+# 1. Verify localized core Python binary layouts (Comprehensive System Scan)
+$SearchPaths = @(
+    "C:\Users\Lenovo\AppData\Local\Programs\Python\Python310\python.exe",
+    "C:\Users\Lenovo\AppData\Local\Programs\Python\Python311\python.exe",
+    "C:\Users\Lenovo\AppData\Local\Programs\Python\Python312\python.exe",
+    (Join-Path $env:USERPROFILE "AppData\Local\Programs\Python\Python310\python.exe"),
+    (Join-Path $env:USERPROFILE "AppData\Local\Programs\Python\Python311\python.exe"),
+    (Join-Path $env:USERPROFILE "AppData\Local\Programs\Python\Python312\python.exe")
+)
 
-if (Test-Path $KnownPythonPath) {
-    $PythonExe = $KnownPythonPath
-} else {
+$PythonExe = $null
+foreach ($Path in $SearchPaths) {
+    if (Test-Path $Path) {
+        $PythonExe = $Path
+        break
+    }
+}
+
+if (-not $PythonExe) {
+    # Fallback to checking system path variables natively
     $PythonExe = Get-Command python.exe -ErrorAction SilentlyContinue | 
                  Where-Object { $_.Source -notmatch "WindowsApps" } | 
                  Select-Object -ExpandProperty Source -First 1
 }
 
 if (-not $PythonExe -or -not (Test-Path $PythonExe)) {
-    Write-Host "❌ CRITICAL ERROR: A valid Python installation could not be verified on this computer!" -ForegroundColor Red
+    Write-Host "❌ CRITICAL ERROR: A valid core Python installation could not be verified on this computer!" -ForegroundColor Red
+    Write-Host "💡 Please check if Python is installed or run: 'where.exe python' in CMD to pinpoint your directory." -ForegroundColor Yellow
     Exit
 }
 
 Write-Host "🐍 Utilizing Python core binary found at: $PythonExe" -ForegroundColor Cyan
 
-# 2. Dynamically build sandbox relative to active downloads directory
-if (Test-Path "C:\Users\Lenovo\Downloads") {
-    $DownloadsDir = "C:\Users\Lenovo\Downloads"
-} else {
-    $DownloadsDir = Join-Path $env:USERPROFILE "Downloads"
-}
-$TargetDir = Join-Path $DownloadsDir "Hackathon\SaralVaani"
-
-Write-Host "🎯 Target Deployment Path resolved to: $TargetDir" -ForegroundColor Cyan
+# 2. Dynamically build production workspace context relative to system environment roots
+$TargetDir = Join-Path $env:USERPROFILE "AppData\Local\SaralVaani"
+Write-Host "🎯 Target Production Deployment Path resolved to: $TargetDir" -ForegroundColor Cyan
 
 # 3. WORKSPACE SCAFFOLDING 
 $Folders = @(
@@ -41,8 +50,8 @@ foreach ($Folder in $Folders) {
     }
 }
 
-# 4. FORCE-KILL LOCKED HANDLES & CLEAN VENV
-Write-Host "⚠️ Flushing sandbox workspace to clean file handles..." -ForegroundColor Yellow
+# 4. DISCONNECT ACTIVE LOCKS & REBUILD SANDBOX CONTEXT
+Write-Host "⚠️ Flushing workspace file system handles..." -ForegroundColor Yellow
 Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
@@ -52,21 +61,20 @@ if (Test-Path ".\venv") {
     try {
         Remove-Item -Recurse -Force .\venv -ErrorAction Stop
     } catch {
-        Write-Host "🔄 Venv folder locked. Attempting rename bypass..." -ForegroundColor Yellow
+        Write-Host "🔄 Target Virtual Environment locked. Attempting rename bypass safety matrix..." -ForegroundColor Yellow
         Rename-Item -Path ".\venv" -NewName "venv_old_$(Get-Date -Format 'HHmmss')" -ErrorAction SilentlyContinue
     }
 }
 
-# 5. LIGHTWEIGHT CPU-ONLY DEPENDENCY INGESTION (Warnings Completely Muted)
-Write-Host "[1/2] Rebuilding fresh isolated Python sandbox environment..." -ForegroundColor Yellow
+# 5. LIGHTWEIGHT CPU-ONLY DEPENDENCY INGESTION
+Write-Host "[1/2] Rebuilding fresh isolated Python production workspace..." -ForegroundColor Yellow
 & $PythonExe -m venv venv 2>$null
 
-Write-Host "[2/2] Installing offline AI backend tools (CPU Static Build)..." -ForegroundColor Yellow
-# --quiet flag and 2>$null redirects ignore pip/wheels upgrade warnings entirely
+Write-Host "[2/2] Installing production offline AI backend tools (CPU Static Build)..." -ForegroundColor Yellow
 & .\venv\Scripts\pip install customtkinter transformers sentencepiece torch soundfile librosa moviepy python-docx reportlab gTTS scipy --extra-index-url https://download.pytorch.org/whl/cpu --quiet --no-warn-script-location 2>$null
 
 # 6. INJECTING END-TO-END PIPELINE SYSTEM CODE
-Write-Host "Injecting production CPU desktop engine code..." -ForegroundColor Yellow
+Write-Host "Injecting production CPU desktop engine core layers..." -ForegroundColor Yellow
 
 $UIAppCode = @"
 import tkinter as tk
@@ -116,7 +124,7 @@ class SaralVaaniApp(ctk.CTk):
         self.device = "cpu"
         self.device_id = -1
         
-        self.title("SaralVaani - Standalone AI Suite [CPU Engine]")
+        self.title("SaralVaani - Enterprise Standalone AI Suite [CPU Engine]")
         self.geometry("1050x750")
         self.minsize(950, 700)
         
@@ -127,7 +135,7 @@ class SaralVaaniApp(ctk.CTk):
         
         self.logo_label = ctk.CTkLabel(
             self.header_frame, 
-            text="🐦 SaralVaani Multi-Input Translation Suite (CPU Build)", 
+            text="🐦 SaralVaani Multi-Input Translation Suite (Production CPU Build)", 
             font=ctk.CTkFont(size=20, weight="bold")
         )
         self.logo_label.pack(side="left", padx=25, pady=15)
@@ -214,6 +222,7 @@ class SaralVaaniApp(ctk.CTk):
     def remove_consecutive_repetitions(self, text):
         if not text:
             return ""
+        # Native deduplication for generative sequence alignment loops
         text = re.sub(r'\b(\w+)(?:\s+\1\b)+', r'\1', text, flags=re.IGNORECASE)
         text = re.sub(r'\b(.+?)(?:\s+\1\b)+', r'\1', text, flags=re.IGNORECASE)
         return text
@@ -245,8 +254,8 @@ class SaralVaaniApp(ctk.CTk):
             
             ext = os.path.splitext(self.selected_file_path)[1].lower()
             
-            user_downloads = os.path.join(os.path.expanduser("~"), "Downloads")
-            export_dir = os.path.join(user_downloads, "Hackathon", "SaralVaani", "output", "exports")
+            user_appdata = os.path.join(os.path.expanduser("~"), "AppData", "Local", "SaralVaani")
+            export_dir = os.path.join(user_appdata, "output", "exports")
             
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
             chosen_language = self.lang_menu.get()
@@ -367,7 +376,7 @@ class SaralVaaniApp(ctk.CTk):
             
             tts_audio_path = os.path.join(export_dir, f"{base_name}_VoiceOver_{chosen_language}.mp3")
             if self.out_audio_var.get() or self.out_video_var.get():
-                self.progress_status_label.configure(text="Rendering Anti-Warp Voice-Over Synthesizer...", text_color="#17A2B8")
+                self.progress_status_label.configure(text="Rendering Voice-Over DSP Synthesizer...", text_color="#17A2B8")
                 
                 punctuated_text = translated_text.replace(" ", ", ", len(translated_text.split()) // 4)
                 
@@ -375,11 +384,19 @@ class SaralVaaniApp(ctk.CTk):
                 tts = gTTS(text=punctuated_text, lang='hi' if chosen_language == "Hindi" else 'en', slow=False) 
                 tts.save(raw_tts_path)
                 
+                # DSP Voice Modification Engine Blocks
                 y, sr = librosa.load(raw_tts_path, sr=None)
-                speed_factor = 0.82 if "Male" in voice_selection else 1.12
-                new_sr = int(sr / speed_factor)
                 
-                sf.write(tts_audio_path, y, new_sr, format='mp3')
+                # Apply high-fidelity continuous time-stretching natively instead of editing samplerates
+                speed_factor = 0.85 if "Male" in voice_selection else 1.08
+                y_stretched = librosa.effects.time_stretch(y, rate=speed_factor)
+                
+                # Resample formant registers to cleanly build pitch matrices without audio repetition
+                pitch_steps = -2.5 if "Male" in voice_selection else 1.5
+                y_modulated = librosa.effects.pitch_shift(y_stretched, sr=sr, n_steps=pitch_steps)
+                
+                # Safely compile back to target using standard compliant frequency integers (sr)
+                sf.write(tts_audio_path, y_modulated, sr, format='mp3')
                 
                 if os.path.exists(raw_tts_path):
                     os.remove(raw_tts_path)
@@ -442,7 +459,7 @@ pause
 $BatContents | Out-File -FilePath $BatFile -Encoding ascii
 
 Write-Host "`n=======================================================" -ForegroundColor Green
-Write-Host "🎉 Environment configured successfully on this system!" -ForegroundColor Green
+Write-Host "🎉 Enterprise environment configured successfully on this system!" -ForegroundColor Green
 Write-Host "📂 Application Directory: $TargetDir" -ForegroundColor Cyan
 Write-Host "🚀 Launch Shortcut Created locally: $BatFile" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Green
