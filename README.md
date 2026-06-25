@@ -1,36 +1,38 @@
-# 🐦 SaralVaani: Standalone Multi-Input AI Translation Suite
+# 🐦 SaralVaani: Enterprise Standalone Multi-Input AI Translation Suite
 
-SaralVaani is a lightweight, fully autonomous multimedia pipeline built for Windows environments. It bridges digital accessibility gaps by converting diverse inputs (**Text documents, Audio captures, or Video clips**) into localized Indian regional dialects. 
+SaralVaani is an enterprise-grade, fully autonomous multimedia localization pipeline engineered for secure, air-gapped Windows environments. It bridges digital accessibility gaps by converting diverse corporate data assets (**Text documents, Audio captures, and Video assets**) into localized Indian regional dialects. 
 
-Designed purposefully for offline hackathon evaluations and limited hardware deployments, the entire infrastructure runs natively on a **standard CPU architecture** without demanding high-end discrete GPUs.
+Designed purposefully for high-efficiency on-premise deployment, the entire infrastructure runs natively on **standard CPU architectures**, removing dependencies on high-end discrete GPUs while maintaining predictable throughput and strict data privacy.
 
 ---
 
 ## 🚀 Key Architectural Capabilities
 
-*   **🎙️ Intelligent Audio Transcription:** Powered by an integrated `OpenAI Whisper` engine to scan and decode wave structures directly from files.
-*   **📡 Neural Machine Translation Matrix:** Harnesses Meta AI's `NLLB-200 (600M Distilled Model)` to parse 400-word chunk sequences into 11+ distinct Indian regional sub-dialects.
-*   **🔊 Audio Dubbing & Gender Profiling:** Modulates text-to-speech outputs through speed-invariant pitch filters to balance target voice characteristics (Male/Female options).
-*   **🎬 Automated Multi-Stream Video Alignment:** Generates perfectly aligned Subtitle tracks (`.srt`) alongside audio-video re-muxing to output a fully dubbed media clip.
-*   **📂 Multi-Format Export Package:** Synchronously exports comprehensive data packages containing `.txt`, `.docx`, and `.pdf` documents directly to your local file system.
+* **🎙️ Enterprise Audio Transcription:** Powered by an optimized, local instance of the `OpenAI Whisper` engine to scan and decode wave structures directly from high-density media files.
+* **📡 Neural Machine Translation Matrix:** Harnesses Meta AI's `NLLB-200 (600M Distilled Model)` to parse 400-word chunk sequences into 11+ distinct Indian regional dialects with state-of-the-art BLEU scores.
+* **🔊 Professional Dubbing & Gender Profiling:** Modulates text-to-speech outputs through speed-invariant pitch filters to dynamically balance target voice characteristics (Male/Female profiles).
+* **🎬 Automated Multi-Stream Video Alignment:** Generates synchronized Subtitle tracks (`.srt`) alongside programmatic audio-video re-muxing to output a production-ready, fully dubbed media clip.
+* **📂 Structured Multi-Format Export Package:** Synchronously exports comprehensive data packages containing `.txt`, `.docx`, and `.pdf` documents directly to your local file system or network-attached storage (NAS).
 
 ---
 
 ## 🛠️ Supported Indian Dialects
+
 The underlying translation engine natively supports mapping to:
-*   **Hindi** (`hin_Deva`) | **Telugu** (`tel_Telu`) | **Tamil** (`tam_Knda`) | **Kannada** (`kan_Knda`)
-*   **Malayalam** (`mal_Mlym`) | **Bengali** (`ben_Beng`) | **Marathi** (`mar_Deva`) | **Gujarati** (`guj_Gujr`)
-*   **Punjabi** (`pan_Guru`) | **Odia** (`ory_Orya`) | **Assamese** (`asm_Asmv`)
+* **Hindi** (`hin_Deva`) | **Telugu** (`tel_Telu`) | **Tamil** (`tam_Knda`) | **Kannada** (`kan_Knda`)
+* **Malayalam** (`mal_Mlym`) | **Bengali** (`ben_Beng`) | **Marathi** (`mar_Deva`) | **Gujarati** (`guj_Gujr`)
+* **Punjabi** (`pan_Guru`) | **Odia** (`ory_Orya`) | **Assamese** (`asm_Asmv`)
 
 ---
 
-## 📦 Zero-Configuration Windows Installation
+## 📦 Zero-Configuration Windows Deployment
 
-SaralVaani features a completely automated, system-agnostic deployment environment. You do not need to manually configure your paths, users, or virtual dependencies.
+SaralVaani features a completely automated, system-agnostic deployment environment suited for enterprise rollouts. System administrators can execute the automated bootstrap script to handle dependencies, virtual environment provisioning, and local model pathing without manual intervention.
 
-### Installation Instructions:
+### Deployment Instructions:
+
 1. Open a **PowerShell** terminal window with **Administrative Privileges**.
-2. Execute **Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process**
-3. Execute the environment bootstrap script file:
-```powershell
-   & "C:\Path\To\Your\SaralVaani.ps1"
+2. Restrict execution policy to the current process scope for secure deployment:
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+3. Execute in power shell **& "C:\Path\To\Your\SaralVaani.ps1"**
