@@ -30,6 +30,7 @@ SaralVaani features a completely automated, system-agnostic deployment environme
 
 ### Installation Instructions:
 1. Open a **PowerShell** terminal window with **Administrative Privileges**.
-2. Execute the environment bootstrap script file:
+2. Execute **Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process**
+3. Execute the environment bootstrap script file:
 ```powershell
    & "C:\Path\To\Your\SaralVaani.ps1"
